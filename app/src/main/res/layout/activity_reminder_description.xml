@@ -94,7 +94,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
 
-            tools:text="Just a preview address 1, Udacity project,\n teteteffsafa f asg asg sa gags sfagasgsagsafa gagasgasg" />
+            tools:text="Just a preview address 1, Udacity project" />
 
 
     </LinearLayout>

@@ -20,7 +20,6 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     val selectedPOI = MutableLiveData<PointOfInterest?>()
     val latitude = MutableLiveData<Double?>()
     val longitude = MutableLiveData<Double?>()
-    val geofencePremissionDenied = MutableLiveData<Boolean>().apply { postValue(false) }
 
     /**
      * Clear the live data objects to start fresh next time the view model gets called
@@ -65,8 +64,9 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
                 )
             )
             showLoading.postValue( false)
-            showToast.value = app.getString(R.string.reminder_saved)
-            navigationCommand.value = NavigationCommand.Back
+            showToast.postValue(app.getString(R.string.reminder_saved))
+
+            navigationCommand.postValue(NavigationCommand.Back)
         }
 
 
@@ -77,17 +77,17 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
      */
     fun validateEnteredData(reminderData: ReminderDataItem): Boolean {
         if (reminderData.title.isNullOrEmpty()) {
-            showSnackBarInt.value = R.string.err_enter_title
+            showSnackBarInt.postValue(R.string.err_enter_title)
             return false
         }
 
         if (reminderData.description.isNullOrEmpty()) {
-            showSnackBarInt.value = R.string.err_enter_description
+            showSnackBarInt.postValue(R.string.err_enter_description)
             return false
         }
 
         if (reminderData.location.isNullOrEmpty()) {
-            showSnackBarInt.value = R.string.err_select_location
+            showSnackBarInt.postValue(R.string.err_select_location)
             return false
         }
         return true

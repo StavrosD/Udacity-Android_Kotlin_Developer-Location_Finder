@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.udacity.project4.locationreminders.geofence.GeofenceTransitionsJobIntentService.Companion.enqueueWork
 import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment
+import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment.Companion.ACTION_GEOFENCE_EVENT
 import java.util.concurrent.TimeUnit
 
 /**
@@ -21,7 +22,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
 
 //COMPLETED: implement the onReceive method to receive the geofencing events at the background
-        if (intent.action == SaveReminderFragment.ACTION_GEOFENCE_EVENT) {
+        if (intent.action == ACTION_GEOFENCE_EVENT) {
             enqueueWork(context, intent)
         }
 
@@ -30,7 +31,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
 
 internal object GeofencingConstants {
-    const val GEOFENCE_RADIUS_IN_METERS = 100f
-    val GEOFENCE_EXPIRATION_IN_MILLISECONDS: Long = TimeUnit.HOURS.toMillis(1)
-
+    const val GEOFENCE_RADIUS_IN_METERS = 500f
+    const val MAX_GEOFENCES = 100 //  limit of 100  https://developer.android.com/training/location/geofencing
 }

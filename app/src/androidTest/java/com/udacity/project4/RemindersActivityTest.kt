@@ -2,19 +2,25 @@ package com.udacity.project4
 
 import android.Manifest
 import android.app.Application
+import android.content.Context
+import android.content.Context.INPUT_METHOD_SERVICE
 import android.os.Build
 import android.util.Log
+import android.view.inputmethod.InputMethodManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions.actionOnItemAtPosition
-import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
+import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -24,6 +30,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.UiObjectNotFoundException
 import androidx.test.uiautomator.UiSelector
+import com.google.android.material.internal.ContextUtils.getActivity
 import com.udacity.project4.locationreminders.RemindersActivity
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.local.LocalDB
@@ -33,6 +40,7 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.not
 import org.junit.After
 import org.junit.Before
@@ -81,7 +89,7 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
                     get() as ReminderDataSource
                 )
             }
-            single {
+            viewModel {
                 SaveReminderViewModel(
                     appContext,
                     get() as ReminderDataSource
@@ -123,6 +131,8 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
     fun appTest() = runBlocking {
        // repository.saveReminder(ReminderDTO("Test 1","Description 1", "Here", 12.4,24.2))
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        val decorView = getActivity(appContext)?.window?.decorView
+
         dataBindingIdlingResource.monitorActivity(activityScenario)
         val title = "test title"
         val description = "test description"
@@ -130,10 +140,30 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
         // click the FAB
         onView(withId(R.id.addReminderFAB)).perform(click())
 
-        // Fill in the title and description. Open the map
+         // check if a snackbar is displayed if the user tries to save the reminder before typing the title
+        onView(withId(R.id.saveReminder)).perform(click())
+        onView(withId(com.google.android.material.R.id.snackbar_text)).check(matches(withText(R.string.err_enter_title)))
+
+        // Fill in the title
         onView(withId(R.id.reminderTitle)).perform(typeText(title))
+        Espresso.closeSoftKeyboard()
+
+        // check if a snackbar is displayed if the user tries to save the reminder before typing the descriptiom
+        onView(withId(R.id.saveReminder)).perform(click())
+        onView(withId(com.google.android.material.R.id.snackbar_text)).check(matches(withText(R.string.err_enter_description)))
+
+        // Fill in the description
         onView(withId(R.id.reminderDescription)).perform(typeText(description))
+        Espresso.closeSoftKeyboard()
+
+        // check if a snackbar is displayed if the user tries to save the reminder before setting the location
+        onView(withId(R.id.saveReminder)).perform(click())
+        onView(withId(com.google.android.material.R.id.snackbar_text)).check(matches(withText(R.string.err_select_location)))
+
+
+        // open the map
         onView(withId(R.id.selectLocation)).perform(click())
+
 
         // Click on the map and return to the previous view
         onView(withId(R.id.map)).perform(longClick())
@@ -143,8 +173,13 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
         onView(withId(R.id.reminderTitle)).check(matches(withText(title)))
         onView(withId(R.id.reminderDescription)).check(matches(withText(description)))
         onView(withId(R.id.selectLocation)).check(matches(not(withText(""))))
-        while(onView(withId(R.id.saveReminder) ) == null) {}  // wait for the view to be displayed, otherwise I get an error some times
+        //while(onView(withId(R.id.saveReminder) ) == null) {}  // wait for the view to be displayed, otherwise I get an error some times
         onView(withId(R.id.saveReminder)).perform(click())
+
+        // check if the toast and the snackbar are displayed
+        onView(withText(R.string.reminder_saved)).inRoot(withDecorView(not(`is`(decorView)))).check(matches(isDisplayed()))
+        onView(withId(com.google.android.material.R.id.snackbar_text)).check(matches(withText(R.string.geofence_added)))
+
 
         // verify the displayed data and open the reminder description view`
         onView(withText(title)).check(matches(withId(R.id.title)))
@@ -177,4 +212,5 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
             }
         }
     }
+
 }

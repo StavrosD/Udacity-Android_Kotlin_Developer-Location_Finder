@@ -67,7 +67,7 @@ class AuthenticationActivity : AppCompatActivity() {
             // sign-in flow using the back button. Otherwise check
             // response.getError().getErrorCode() and handle the error.
             // ...
-            Log.i(TAG, "Sign in unsuccessful ${response?.error?.errorCode}")
+            Log.i(TAG, "Sign in unsuccessful ${response?.error?.message}")
             Snackbar.make(
                 binding.root, getString(R.string.login_unsuccessful_msg),
                 Snackbar.LENGTH_LONG

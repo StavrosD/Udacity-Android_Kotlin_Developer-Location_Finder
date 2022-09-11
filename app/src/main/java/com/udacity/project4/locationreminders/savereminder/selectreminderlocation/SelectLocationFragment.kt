@@ -3,41 +3,51 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
+import android.location.LocationManager
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.*
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.*
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PointOfInterest
+import com.google.android.gms.tasks.Task
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
+import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.*
-import com.udacity.project4.utils.PermissionUtils.PermissionDeniedDialog.Companion.newInstance
-import com.udacity.project4.utils.PermissionUtils.isPermissionGranted
-import com.udacity.project4.utils.PermissionUtils.requestPermission
 
 
-class SelectLocationFragment : BaseFragment(),OnMapReadyCallback,
-    ActivityCompat.OnRequestPermissionsResultCallback {
+class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
     private val TAG = "SelectLocationFragment"
 
     private var permissionDenied = false
     //Use Koin to get the view model of the SaveReminder
-    override val _viewModel: SaveReminderViewModel by inject()
+    override val _viewModel: SaveReminderViewModel by sharedViewModel()
     private lateinit var binding: FragmentSelectLocationBinding
     private lateinit var map : GoogleMap
     private var poi : PointOfInterest? = null
@@ -53,7 +63,36 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback,
         binding.viewModel = _viewModel
         binding.lifecycleOwner = this
 
-        setHasOptionsMenu(true)
+        // setHasOptionsMenu(true)
+        // Add menu items without overriding methods in the Activity
+        requireActivity().addMenuProvider(object : MenuProvider {
+            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                // Add menu items here
+                menuInflater.inflate(R.menu.map_options, menu)
+            }
+
+            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                // Handle the menu selection
+                when (menuItem.itemId) {
+                    // COMPLETED: Change the map type based on the user's selection.
+                    R.id.normal_map -> {
+                        map.mapType = GoogleMap.MAP_TYPE_NORMAL
+                    }
+                    R.id.hybrid_map -> {
+                        map.mapType = GoogleMap.MAP_TYPE_HYBRID
+                    }
+                    R.id.satellite_map -> {
+                        map.mapType = GoogleMap.MAP_TYPE_SATELLITE
+                    }
+                    R.id.terrain_map -> {
+                        map.mapType = GoogleMap.MAP_TYPE_TERRAIN
+                    }
+                }
+                return true
+            }
+        },this.viewLifecycleOwner)
+
+
         setDisplayHomeAsUpEnabled(true)
 
 //        COMPLETED: add the map setup implementation
@@ -61,6 +100,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback,
         mapFragment.getMapAsync(this)
 
 //        COMPLETED: zoom to the user location after taking his permission
+        // implemented in requestPermissionLauncher, if the location permission is granted
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity())
 
@@ -83,36 +123,14 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback,
         //        COMPLETED: When the user confirms on the selected location,
         //         send back the selected location details to the view model
         //         and navigate back to the previous fragment to save the reminder and add the geofence
-        _viewModel.longitude.postValue(poi!!.latLng.longitude)
-        _viewModel.latitude.postValue(poi!!.latLng.latitude)
-        _viewModel.reminderSelectedLocationStr.postValue(poi!!.name)
+
+        poi?.let {
+            _viewModel.longitude.postValue(poi!!.latLng.longitude)
+            _viewModel.latitude.postValue(poi!!.latLng.latitude)
+            _viewModel.reminderSelectedLocationStr.postValue(poi!!.name)
+            _viewModel.selectedPOI.postValue(poi)
+        }
         _viewModel.navigationCommand.postValue(NavigationCommand.Back)
-        _viewModel.selectedPOI.postValue(poi)
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.map_options, menu)
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        // COMPLETED: Change the map type based on the user's selection.
-        R.id.normal_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_NORMAL
-            true
-        }
-        R.id.hybrid_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_HYBRID
-            true
-        }
-        R.id.satellite_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_SATELLITE
-            true
-        }
-        R.id.terrain_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_TERRAIN
-            true
-        }
-        else -> super.onOptionsItemSelected(item)
     }
 
     override fun onMapReady(p0: GoogleMap) {
@@ -132,64 +150,70 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback,
                 )
                 binding.saveLocation.isEnabled = true
         }
-        enableMyLocation()
         if (!permissionDenied) {
             getDeviceLocation()
         }
-    }
+        enableMyLocationPermissions()
 
+    }
     @SuppressLint("MissingPermission")
-    private fun enableMyLocation() {
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission())
+        { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission is granted. Continue the action or workflow in your
+                // app.
+                permissionDenied = false
+                map.isMyLocationEnabled = true
+                getDeviceLocation()
+            } else {
+                // Explain to the user that the feature is unavailable because the
+                // features requires a permission that the user has denied. At the
+                // same time, respect the user's decision. Don't link to system
+                // settings in an effort to convince the user to change their
+                // decision.
+                _viewModel.showErrorMessage.postValue(getString(R.string.location_permission_denied))
+                requireActivity().finish()
+                permissionDenied = true
+            }
+        }
+    @SuppressLint("MissingPermission")
+    private fun enableMyLocationPermissions() {
         if (!::map.isInitialized) return
         // [START maps_check_location_permission]
-        if (ContextCompat.checkSelfPermission(this.requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            map.isMyLocationEnabled = true
-        } else {
-            // Permission to access the location is missing. Show rationale and request permission
-            requestPermission(
-                requireActivity() as AppCompatActivity,
-                LOCATION_PERMISSION_REQUEST_CODE,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                R.string.permission_rationale_location,
-                R.string.permission_location_required_toast,
-                true)
+        when {
+            ContextCompat.checkSelfPermission(requireContext(), REQUIRED_PERMISSION) == PackageManager.PERMISSION_GRANTED -> {
+                // You can use the API that requires the permission.
+                map.isMyLocationEnabled = true
+                permissionDenied = false
+                getDeviceLocation()
+            }
+
+            shouldShowRequestPermissionRationale(REQUIRED_PERMISSION) -> {
+            // In an educational UI, explain to the user why your app requires this
+            // permission for a specific feature to behave as expected. In this UI,
+            // include a "cancel" or "no thanks" button that allows the user to
+            // continue using your app without granting the permission.
+            AlertDialog.Builder(requireContext())
+                .setMessage(getString(R.string.permission_rationale_location))
+                .setPositiveButton(android.R.string.ok) { _, _ -> requestPermissionLauncher.launch(REQUIRED_PERMISSION) }
+                .setNegativeButton(android.R.string.cancel) { _, _ ->
+                    _viewModel.showErrorMessage.postValue(getString(R.string.location_permission_denied))
+                    requireActivity().finish()
+                }
+                .create().show()
+                }
+
+            else -> {
+                // You can directly ask for the permission.
+                // The registered ActivityResultCallback gets the result of this request.
+                requestPermissionLauncher.launch(REQUIRED_PERMISSION)
+            }
         }
         // [END maps_check_location_permission]
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-            return
-        }
-        if (isPermissionGranted(permissions, grantResults, Manifest.permission.ACCESS_FINE_LOCATION)) {
-            // Enable the my location layer if the permission has been granted.
-            enableMyLocation()
-        } else {
-            // Permission was denied. Display an error message
-            // [START_EXCLUDE]
-            // Display the missing permission error dialog when the fragments resume.
-            _viewModel.showErrorMessage.postValue(R.string.location_permission_denied.toString())
-            permissionDenied = true
-            // [END_EXCLUDE]
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (permissionDenied) {
-            // Permission was not granted, display error dialog.
-            showMissingPermissionError()
-            permissionDenied=false
-        }
-    }
-
-    /**
-     * Displays a dialog with error message explaining that the location permission is missing.
-     */
-    private fun showMissingPermissionError() {
-        newInstance(true,R.string.location_permission_denied, R.string.permission_location_required_toast).show(childFragmentManager, "dialog")
-    }
 
     @SuppressLint("MissingPermission")
     private fun getDeviceLocation() {
@@ -311,6 +335,6 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback,
          *
          * @see .onRequestPermissionsResult
          */
-        private const val LOCATION_PERMISSION_REQUEST_CODE = 1
+        private const val REQUIRED_PERMISSION = Manifest.permission.ACCESS_FINE_LOCATION
     }
 }

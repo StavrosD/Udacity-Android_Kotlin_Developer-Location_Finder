@@ -3,9 +3,11 @@ package com.udacity.project4.utils
 import android.view.View
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.RecyclerView
 import com.udacity.project4.base.BaseRecyclerViewAdapter
-
+import com.udacity.project4.locationreminders.data.dto.ReminderDTO
+import com.udacity.project4.locationreminders.data.dto.Result
 
 object BindingAdapters {
 
@@ -15,13 +17,18 @@ object BindingAdapters {
     @Suppress("UNCHECKED_CAST")
     @BindingAdapter("android:liveData")
     @JvmStatic
-    fun <T> setRecyclerViewData(recyclerView: RecyclerView, items: LiveData<List<T>>?) {
-        items?.value?.let { itemList ->
-            (recyclerView.adapter as? BaseRecyclerViewAdapter<T>)?.apply {
-                clear()
-                addData(itemList)
+    fun <T> setRecyclerViewData(recyclerView: RecyclerView, items: MutableLiveData<Result<List<T>>>?) {
+        items?.value?.let {
+            if (it !is Error) {
+                (it as Result.Success<List<T>>).data.let { itemList ->
+                    (recyclerView.adapter as? BaseRecyclerViewAdapter<T>)?.apply {
+                        clear()
+                        addData(itemList)
+                    }
+                }
             }
         }
+
     }
 
     /**
