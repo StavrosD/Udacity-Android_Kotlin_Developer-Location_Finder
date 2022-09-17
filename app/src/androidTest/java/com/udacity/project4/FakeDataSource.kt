@@ -11,6 +11,7 @@ import java.util.*
 //Use FakeDataSource that acts as a test double to the LocalDataSource
 class FakeDataSource : ReminderDataSource {
     private var shouldReturnError = false
+
     fun setReturnError(value: Boolean) {
         shouldReturnError = value
     }
@@ -31,6 +32,7 @@ class FakeDataSource : ReminderDataSource {
         if (shouldReturnError){
             return Result.Error("Test exception")
         }
+
         return if (localReminders.isEmpty()) {
             Result.Error("There are no reminders") // no localization needed, hardcoded text is OK here
         } else {
@@ -63,9 +65,9 @@ class FakeDataSource : ReminderDataSource {
         localReminders.clear()
     }
 
-    override suspend fun deleteReminderWithId(id: String) {
+    override suspend fun deleteReminderWithId(reminderId: String) {
         for (reminder in localReminders) {
-            if (reminder.id == id) {
+            if (reminder.id == reminderId) {
                 localReminders.remove(reminder)
                 return
             }

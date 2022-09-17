@@ -1,6 +1,5 @@
 package com.udacity.project4.base
 
-import android.app.AlertDialog
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
@@ -8,7 +7,6 @@ import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.RecyclerView
-import com.udacity.project4.R
 
 abstract class BaseRecyclerViewAdapter<T>(private val clickCallback: ((item: T) -> Unit)? = null,private val deleteCallback: ((item: T) -> Unit)? = null) :
     RecyclerView.Adapter<DataBindingViewHolder<T>>() {

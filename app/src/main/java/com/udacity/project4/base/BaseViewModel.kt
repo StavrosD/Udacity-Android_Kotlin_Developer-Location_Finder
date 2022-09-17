@@ -2,9 +2,7 @@ package com.udacity.project4.base
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.MutableLiveData
 import com.udacity.project4.utils.SingleLiveEvent
 
 /**

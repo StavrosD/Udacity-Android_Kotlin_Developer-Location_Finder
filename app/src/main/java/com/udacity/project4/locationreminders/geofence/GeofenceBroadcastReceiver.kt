@@ -4,9 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.udacity.project4.locationreminders.geofence.GeofenceTransitionsJobIntentService.Companion.enqueueWork
-import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment
 import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment.Companion.ACTION_GEOFENCE_EVENT
-import java.util.concurrent.TimeUnit
 
 /**
  * Triggered by the Geofence.  Since we can have many Geofences at once, we pull the request

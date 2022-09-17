@@ -16,11 +16,8 @@
 
 package com.udacity.project4.authentication
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.map
-import androidx.preference.PreferenceManager
-import kotlin.random.Random
 
 class LoginViewModel : ViewModel() {
 

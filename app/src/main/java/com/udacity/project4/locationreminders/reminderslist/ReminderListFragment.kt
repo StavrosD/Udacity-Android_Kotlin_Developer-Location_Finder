@@ -1,23 +1,18 @@
 package com.udacity.project4.locationreminders.reminderslist
 
 import android.app.AlertDialog
-import android.app.Application
 import android.os.Bundle
-import android.util.Log
 import android.view.*
 import android.widget.Toast
 import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
-import androidx.navigation.NavController
 import com.firebase.ui.auth.AuthUI
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.GoogleMap
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentRemindersBinding
 import com.udacity.project4.locationreminders.ReminderDescriptionActivity
-import com.udacity.project4.locationreminders.RemindersActivity
 import com.udacity.project4.locationreminders.geofence.GeofencingConstants
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import com.udacity.project4.utils.setTitle

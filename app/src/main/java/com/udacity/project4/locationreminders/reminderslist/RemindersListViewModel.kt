@@ -42,13 +42,12 @@ class RemindersListViewModel(
      * Get all the reminders from the DataSource and add them to the remindersList to be shown on the UI,
      * or show error if any
      */
-
-    fun loadReminders() {
+    @JvmOverloads // required in order to support optional parameter
+    fun loadReminders(showLoadingUI:Boolean = false) {
         showLoading.value = true
         viewModelScope.launch {
             //interacting with the dataSource has to be through a coroutine
             val result = dataSource.getReminders()
-            showLoading.value = false
             when (result) {
                 is Success<*> -> {
                     val dataList = ArrayList<ReminderDataItem>()
@@ -72,6 +71,7 @@ class RemindersListViewModel(
                 }
             }
 
+            showLoading.value = showLoadingUI
             // check if no data has to be shown
             // invalidateShowNoData()
         }

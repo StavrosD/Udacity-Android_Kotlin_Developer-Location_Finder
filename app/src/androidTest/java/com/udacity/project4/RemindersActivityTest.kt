@@ -14,6 +14,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -39,6 +40,7 @@ import com.udacity.project4.locationreminders.reminderslist.RemindersListViewMod
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
+import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.not
@@ -69,7 +71,6 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-
 
     @get:Rule
     val instantTaskExecutorRule = InstantTaskExecutorRule()
@@ -126,6 +127,17 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
         InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("pm revoke ${appContext.packageName} android.permission.ACCESS_COARSE_LOCATION")
     }
 
+    @Before
+    fun registerIdlingResource() {
+        IdlingRegistry.getInstance().register(EspressoIdlingResource.countingIdlingResource)
+        IdlingRegistry.getInstance().register(dataBindingIdlingResource)
+    }
+
+    @After
+    fun unregisterIdlingResource() {
+        IdlingRegistry.getInstance().unregister(EspressoIdlingResource.countingIdlingResource)
+        IdlingRegistry.getInstance().unregister(dataBindingIdlingResource)
+    }
     //    COMPLETED: add End to End testing to the app
     @Test
     fun appTest() = runBlocking {
@@ -134,6 +146,7 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
         val decorView = getActivity(appContext)?.window?.decorView
 
         dataBindingIdlingResource.monitorActivity(activityScenario)
+
         val title = "test title"
         val description = "test description"
 
@@ -164,22 +177,19 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
         // open the map
         onView(withId(R.id.selectLocation)).perform(click())
 
-
         // Click on the map and return to the previous view
         onView(withId(R.id.map)).perform(longClick())
         onView(withId(R.id.save_location)).perform(click())
 
-        // check that the textviews to verify that the viewmodel is bound correctly. Also verify that a location is selected
+        // verify that the viewmodel is bound correctly. Also verify that a location is selected
         onView(withId(R.id.reminderTitle)).check(matches(withText(title)))
         onView(withId(R.id.reminderDescription)).check(matches(withText(description)))
         onView(withId(R.id.selectLocation)).check(matches(not(withText(""))))
-        //while(onView(withId(R.id.saveReminder) ) == null) {}  // wait for the view to be displayed, otherwise I get an error some times
         onView(withId(R.id.saveReminder)).perform(click())
 
         // check if the toast and the snackbar are displayed
         onView(withText(R.string.reminder_saved)).inRoot(withDecorView(not(`is`(decorView)))).check(matches(isDisplayed()))
         onView(withId(com.google.android.material.R.id.snackbar_text)).check(matches(withText(R.string.geofence_added)))
-
 
         // verify the displayed data and open the reminder description view`
         onView(withText(title)).check(matches(withId(R.id.title)))

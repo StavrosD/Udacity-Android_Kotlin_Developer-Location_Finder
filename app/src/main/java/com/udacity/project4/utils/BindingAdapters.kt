@@ -2,11 +2,9 @@ package com.udacity.project4.utils
 
 import android.view.View
 import androidx.databinding.BindingAdapter
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.RecyclerView
 import com.udacity.project4.base.BaseRecyclerViewAdapter
-import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
 
 object BindingAdapters {

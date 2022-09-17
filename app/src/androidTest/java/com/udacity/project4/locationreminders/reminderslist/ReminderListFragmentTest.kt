@@ -43,6 +43,7 @@ import com.udacity.project4.locationreminders.data.local.LocalDB
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
+import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.util.monitorFragment
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.*
@@ -172,6 +173,7 @@ class ReminderListFragmentTest : AutoCloseKoinTest() {
     @Test
     fun snackbar_noTitleError() = runBlocking {
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
         onView(withId(R.id.addReminderFAB)).perform(click())
 
         onView(withId(R.id.saveReminder)).perform(click())
@@ -184,6 +186,7 @@ class ReminderListFragmentTest : AutoCloseKoinTest() {
     @Test
     fun snackbar_noDescriptionError() = runBlocking {
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
         onView(withId(R.id.addReminderFAB)).perform(click())
 
         onView(withId(R.id.reminderTitle)).perform(typeText("Title"),closeSoftKeyboard())
@@ -197,6 +200,7 @@ class ReminderListFragmentTest : AutoCloseKoinTest() {
     @Test
     fun snackbar_noLocationError() = runBlocking {
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
         //Verify title missing snackbar
         onView(withId(R.id.addReminderFAB)).perform(click())
 

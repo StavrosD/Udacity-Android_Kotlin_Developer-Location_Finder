@@ -1,19 +1,20 @@
 package com.udacity.project4.locationreminders.data
 
-import android.content.res.Resources
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 
 import com.udacity.project4.R
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import java.util.*
-import kotlin.collections.ArrayList
 
 //import com.udacity.project4.locationreminders.data.ReminderDataSource.
 
 //Use FakeDataSource that acts as a test double to the LocalDataSource
 class FakeDataSource : ReminderDataSource {
     private var shouldReturnError = false
+    val targetContext = ApplicationProvider.getApplicationContext<Context>()
 
     fun setReturnError(value: Boolean) {
         shouldReturnError = value
@@ -34,11 +35,11 @@ class FakeDataSource : ReminderDataSource {
     override suspend fun getReminders(): Result<List<ReminderDTO>> {
      //   COMPLETED ("Return the reminders")
         if (shouldReturnError) {
-            return Result.Error("Test exception - getReminders") // there is no need for localizing a test message so it is OK to hardcode it.
+            return Result.Error(targetContext.getString(R.string.getreminders_test_exception)) // there is no need for localizing a test message so it is OK to hardcode it.
         }
 
         if (localReminders.isEmpty()) {
-            return Result.Error(Resources.getSystem().getString(R.string.no_reminders))
+            return Result.Error(targetContext.getString(R.string.no_reminders))
         } else {
             return Result.Success(localReminders)
         }
@@ -52,7 +53,7 @@ class FakeDataSource : ReminderDataSource {
     override suspend fun getReminder(id: String): Result<ReminderDTO> {
         //  COMPLETED ("return the reminder with the id")
         if(shouldReturnError) {
-            return Result.Error( "Test exception - getReminder")
+            return Result.Error( targetContext.getString(R.string.getreminder_test_exception))
         }
 
         val result = localReminders.firstOrNull{it.id == id}
@@ -69,9 +70,9 @@ class FakeDataSource : ReminderDataSource {
         localReminders.clear()
     }
 
-    override suspend fun deleteReminderWithId(reminderID: String) {
+    override suspend fun deleteReminderWithId(reminderId: String) {
         for (reminder in localReminders) {
-            if (reminder.id == reminderID) {
+            if (reminder.id == reminderId) {
                 localReminders.remove(reminder)
                 return
             }

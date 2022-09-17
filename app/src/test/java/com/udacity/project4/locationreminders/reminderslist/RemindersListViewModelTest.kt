@@ -1,5 +1,7 @@
 package com.udacity.project4.locationreminders.reminderslist
 
+import android.content.Context
+import android.content.res.Resources
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -18,7 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.stopKoin
-
+import com.udacity.project4.R
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
 class RemindersListViewModelTest {
@@ -26,6 +28,7 @@ class RemindersListViewModelTest {
     //COMPLETED: provide testing to the RemindersListViewModel and its live data objects
     private lateinit var  remindersListViewModel : RemindersListViewModel
     private lateinit var fakeDataSource: FakeDataSource
+    val targetContext = ApplicationProvider.getApplicationContext<Context>()
 
     @get:Rule
     var mainCoroutineRule = MainCoroutineRule()
@@ -76,7 +79,6 @@ class RemindersListViewModelTest {
         //assertThat(returnedReminder.)// verify that the reminder is deleted
     }
 
-
     @Test
     fun loadRmindersWhenUnavailable_callErrorToDisplay() = runBlocking{
         // Make the repository return errors.
@@ -88,8 +90,10 @@ class RemindersListViewModelTest {
         // Then empty and error are true (which triggers an error message to be shown).
         assertThat(remindersListViewModel.error.getOrAwaitValue(), `is`(true))
         assertThat(remindersListViewModel.empty.getOrAwaitValue(), `is`(true))
+        assertThat(remindersListViewModel.remindersList.value , instanceOf(Result::class.java))
+        assertThat(remindersListViewModel.remindersList.value , instanceOf(Result.Error::class.java))
+        assertThat((remindersListViewModel.remindersList.value as Result.Error).message,`is`(targetContext.getString(R.string.getreminders_test_exception)))
     }
-
 
     @Test
     fun loadRminderWhenUnavailable_callErrorToDisplay() = runBlocking{
@@ -99,10 +103,15 @@ class RemindersListViewModelTest {
         val result = remindersListViewModel.getReminder("unavailable")
         mainCoroutineRule.resumeDispatcher()
 
-
         // Then empty and error are true (which triggers an error message to be shown).
         assertThat(result, instanceOf(Result::class.java))
         assertThat(result, instanceOf(Result.Error::class.java))
+        assertThat((result as Result.Error).message,`is`(targetContext.getString(R.string.getreminder_test_exception)))
     }
 
+    @Test
+    fun check_loading() = runBlocking {
+        remindersListViewModel.loadReminders(true)
+        assertThat(remindersListViewModel.showLoading.value, `is`(true))
+    }
 }

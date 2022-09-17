@@ -14,13 +14,11 @@ import android.util.Log
 import android.view.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
-import com.google.android.gms.common.api.ResolvableApiException
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -29,15 +27,12 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PointOfInterest
-import com.google.android.gms.tasks.Task
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
-import org.koin.android.ext.android.get
-import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.*
 
@@ -46,6 +41,8 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
     private val TAG = "SelectLocationFragment"
 
     private var permissionDenied = false
+    private var locationDisabled = false
+
     //Use Koin to get the view model of the SaveReminder
     override val _viewModel: SaveReminderViewModel by sharedViewModel()
     private lateinit var binding: FragmentSelectLocationBinding
@@ -53,6 +50,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
     private var poi : PointOfInterest? = null
     private lateinit var fusedLocationProviderClient : FusedLocationProviderClient
     private val defaultZoom = 15
+    private var returnFromEnableLocationSetting = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -150,11 +148,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 )
                 binding.saveLocation.isEnabled = true
         }
-        if (!permissionDenied) {
-            getDeviceLocation()
-        }
-        enableMyLocationPermissions()
-
+        checkIfLocationEnabled()
     }
     @SuppressLint("MissingPermission")
     private val requestPermissionLauncher =
@@ -174,18 +168,18 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 // settings in an effort to convince the user to change their
                 // decision.
                 _viewModel.showErrorMessage.postValue(getString(R.string.location_permission_denied))
-                requireActivity().finish()
+                map.isMyLocationEnabled = false
                 permissionDenied = true
             }
         }
     @SuppressLint("MissingPermission")
-    private fun enableMyLocationPermissions() {
+    private fun checkFineLocationPermission() {
         if (!::map.isInitialized) return
         // [START maps_check_location_permission]
         when {
             ContextCompat.checkSelfPermission(requireContext(), REQUIRED_PERMISSION) == PackageManager.PERMISSION_GRANTED -> {
                 // You can use the API that requires the permission.
-                map.isMyLocationEnabled = true
+                map.isMyLocationEnabled = locationDisabled.not()
                 permissionDenied = false
                 getDeviceLocation()
             }
@@ -199,8 +193,9 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 .setMessage(getString(R.string.permission_rationale_location))
                 .setPositiveButton(android.R.string.ok) { _, _ -> requestPermissionLauncher.launch(REQUIRED_PERMISSION) }
                 .setNegativeButton(android.R.string.cancel) { _, _ ->
-                    _viewModel.showErrorMessage.postValue(getString(R.string.location_permission_denied))
-                    requireActivity().finish()
+                    _viewModel.showErrorMessage.postValue(getString(R.string.permission_rationale_location))
+                    map.isMyLocationEnabled = false
+                    permissionDenied = false
                 }
                 .create().show()
                 }
@@ -257,7 +252,51 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 }
             }
         } catch (e: SecurityException) {
+            _viewModel.showErrorMessage.postValue(e.localizedMessage)
             Log.e("Exception: %s", e.message, e)
+        }
+    }
+
+    var checkIfLocationServiceIsEnabledActivityResultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ){result ->
+        checkIfLocationEnabled(false)
+    }
+
+
+    @SuppressLint("MissingPermission")
+    private fun checkIfLocationEnabled(showLocationNeededDialog:Boolean = true){
+        val lm = requireActivity().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        var gps_enabled = false
+        var network_enabled = false
+
+        try {
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        } catch(ex : Exception) {}
+
+        try {
+            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        } catch(ex : Exception) {}
+
+        if(!gps_enabled && !network_enabled) {
+            // notify user
+            val errorMessage = getString(R.string.location_enabled_required)
+            if (showLocationNeededDialog) {
+                android.app.AlertDialog.Builder(requireContext())
+                    .setMessage(R.string.location_disabled)
+                    .setPositiveButton(R.string.open_location_settings) { _, _ ->
+                        returnFromEnableLocationSetting = true
+                        checkIfLocationServiceIsEnabledActivityResultLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    }
+                    .setNegativeButton(R.string.cancel) { _, _ ->
+                        _viewModel.showSnackBar.value = errorMessage
+                    }
+                    .show()
+            } else {
+                _viewModel.showSnackBar.value = errorMessage
+            }
+        } else {
+            checkFineLocationPermission()
         }
     }
 

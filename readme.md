@@ -41,6 +41,15 @@ In this project, I created a TODO list app with location reminders that remind t
    <li> Go to the save reminder screen and then on the map. While the map is open, the app receives location notifications. </li>
 </ul>
 </ol>
+<h2> Demo </h2>
+
+
+<figure>
+    <img src="screenshots/AppCapture.gif" width="256" alt="Start screen"/>
+    <figcaption>App demo</figcaption>
+</figure>
+<br/>
+
 <h2> Screenshots </h2>
 
 <figure>
@@ -92,8 +101,11 @@ In this project, I created a TODO list app with location reminders that remind t
 </figure>
 <br/>
 <figure>
-    <img src="screenshots/androidTest.png" width="1024" alt="Integration test"/>
-    <figcaption>Integration test passed!</figcaption>
+    <img src="screenshots/androidTest.png" width="512" alt="Integration test"/>
+    <img src="screenshots/DaoTests.png" width="512" alt="DAO tests"/>
+    <img src="screenshots/RepositoryTests.png" width="512" alt="DAO tests"/>
+    <img src="screenshots/SaveReminderViewmodelTest.png" width="512" alt="SaveReminderViewmodel tests"/>
+    <figcaption>Integration tests passed!</figcaption>
 </figure>
 <br/>
 <figure>

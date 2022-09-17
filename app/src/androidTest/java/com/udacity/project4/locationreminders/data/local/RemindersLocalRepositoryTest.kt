@@ -17,7 +17,6 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.junit.*
 import org.junit.runner.RunWith
 
-@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 //Medium Test to test the repository
 @MediumTest

@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.PointOfInterest
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseViewModel
-import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
@@ -20,6 +19,7 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     val selectedPOI = MutableLiveData<PointOfInterest?>()
     val latitude = MutableLiveData<Double?>()
     val longitude = MutableLiveData<Double?>()
+    var saveClicked = false
 
     /**
      * Clear the live data objects to start fresh next time the view model gets called
@@ -36,10 +36,12 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     /**
      * Validate the entered data then saves the reminder data to the DataSource
      */
-    fun validateAndSaveReminder(reminderData: ReminderDataItem) {
+    fun validateAndSaveReminder(reminderData: ReminderDataItem) : Boolean {
         if (validateEnteredData(reminderData)) {
             saveReminder(reminderData)
+            return true
         }
+        return false
     }
 
     /**
@@ -65,17 +67,13 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
             )
             showLoading.postValue( false)
             showToast.postValue(app.getString(R.string.reminder_saved))
-
-            navigationCommand.postValue(NavigationCommand.Back)
         }
-
-
     }
 
     /**
      * Validate the entered data and show error to the user if there's any invalid data
      */
-    fun validateEnteredData(reminderData: ReminderDataItem): Boolean {
+     fun validateEnteredData(reminderData: ReminderDataItem): Boolean {
         if (reminderData.title.isNullOrEmpty()) {
             showSnackBarInt.postValue(R.string.err_enter_title)
             return false
@@ -87,6 +85,7 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
         }
 
         if (reminderData.location.isNullOrEmpty()) {
+
             showSnackBarInt.postValue(R.string.err_select_location)
             return false
         }
