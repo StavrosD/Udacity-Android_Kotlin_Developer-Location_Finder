@@ -20,7 +20,7 @@
     <string name="dropped_pin">Dropped Pin</string>
     <string name="poi">poi</string>
     <string name="location_required_error">There will be no notifications while the Location Service is disabled!</string>
-    <string name="permission_denied_explanation">You need to grant location permission in order to select the location.</string>
+    <string name="permission_denied_explanation">You need to grant location permission in order to select the location. </string>
     <string name="settings">Settings</string>
     <string name="select_poi">Please select a point of interest</string>
     <string name="geofence_entered">Geofence Entered</string>
@@ -52,17 +52,19 @@
     <string name="map">Map</string>
     <string name="sign_in_with_email">Sign in with email</string>
 
-    <string name="permission_rationale_location">Access to the location service is required to acquire \'my location\' feature, which shows your current location on the map.</string>
+    <string name="permission_rationale_location">Access to the fine location service is required to acquire \'my location\' feature, which shows your current location on the map.</string>
     <string name="location_denied_no_map_location">Your location on the map will not be available while the location service is disabled!</string>
     <string name="location_permission_denied">This app requires location permission to enable the \'my location\' layer. Please try again and grant access to use the location.\nIf the permission has been permanently denied, it can be enabled from the System Settings &gt; Apps &gt; \'Location Reminders\'.</string>
-    <string name="permission_location_required_toast">Location permission is required for this application.</string>
+    <string name="permission_location_required_toast">Geofence permission is required. Cannot create a GeoFence while fine location permission is denied!</string>
     <string name="location_disabled">Location service is disabled. </string>
-    <string name="location_enabled_required">The app will not alert you when you are near a reminder while the location service is disabled!</string>
+    <string name="location_enabled_required">The app cannot display your location on the map while the location service is disabled!</string>
     <string name="geofence_error_no_location">Geofence not saved because location services are disabled!</string>
     <string name="open_location_settings">Open location settings</string>
     <string name="cancel">Cancel</string>
     <string name="permission_rationale_geofence">Access to the background location service is required to use \'Geofences\' feature, which notifies you when you are near a saved POI.</string>
-    <string name="geofence_permission_denied">This app requires background location permission to enable the \'Geofences\' feature. Please try again and grant access to use the background location.\nIf the permission has been permanently denied, it can be enabled from the System Settings &gt; Apps &gt; \'Location Reminders\'.</string>
+    <string name="geofence_background_permission_denied">This app requires "access background location" permission to enable the \'Geofences\' feature. Please try again and grant access to use the background location.\nIf the permission has been permanently denied, it can be enabled from the System Settings &gt; Apps &gt; \'Location Reminders\'.</string>
+    <string name="geofence_access_fine_location_permission_denied">This app requires "access fine location permission to enable the \'Geofences\' feature. Please try again and grant access to use the fine location.\nIf the permission has been permanently denied, it can be enabled from the System Settings &gt; Apps &gt; \'Location Reminders\'.</string>Ω
+    <string name="geofence_request_access_fine_location">This app require the access fine location permission in order to create geofences.</string>
     <string name="permission_geofence_required_toast">Background location permission is required for this application.</string>
     <string name="geofence_removed">Geofence removed!</string>
     <string name="geofence_remove_error">Error while removing geofence\n</string>

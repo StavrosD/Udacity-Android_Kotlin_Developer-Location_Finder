@@ -148,7 +148,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 )
                 binding.saveLocation.isEnabled = true
         }
-        checkIfLocationEnabled()
+        checkFineLocationPermission()
     }
     @SuppressLint("MissingPermission")
     private val requestPermissionLauncher =
@@ -159,8 +159,6 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 // Permission is granted. Continue the action or workflow in your
                 // app.
                 permissionDenied = false
-                map.isMyLocationEnabled = true
-                getDeviceLocation()
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
@@ -168,9 +166,9 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 // settings in an effort to convince the user to change their
                 // decision.
                 _viewModel.showErrorMessage.postValue(getString(R.string.location_permission_denied))
-                map.isMyLocationEnabled = false
                 permissionDenied = true
             }
+            checkIfLocationEnabled()
         }
     @SuppressLint("MissingPermission")
     private fun checkFineLocationPermission() {
@@ -179,9 +177,8 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
         when {
             ContextCompat.checkSelfPermission(requireContext(), REQUIRED_PERMISSION) == PackageManager.PERMISSION_GRANTED -> {
                 // You can use the API that requires the permission.
-                map.isMyLocationEnabled = locationDisabled.not()
                 permissionDenied = false
-                getDeviceLocation()
+                checkIfLocationEnabled()
             }
 
             shouldShowRequestPermissionRationale(REQUIRED_PERMISSION) -> {
@@ -194,8 +191,8 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 .setPositiveButton(android.R.string.ok) { _, _ -> requestPermissionLauncher.launch(REQUIRED_PERMISSION) }
                 .setNegativeButton(android.R.string.cancel) { _, _ ->
                     _viewModel.showErrorMessage.postValue(getString(R.string.permission_rationale_location))
-                    map.isMyLocationEnabled = false
-                    permissionDenied = false
+                    permissionDenied = true
+                    checkIfLocationEnabled()
                 }
                 .create().show()
                 }
@@ -217,9 +214,12 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
          * Get the best and most recent location of the device, which may be null in rare
          * cases when a location is not available.
          */
-        try {
-            if (!permissionDenied) {
 
+
+        val locationEnabled = !permissionDenied && !locationDisabled
+        map.isMyLocationEnabled = locationEnabled
+        try {
+            if (locationEnabled) {
                 val locationResult = fusedLocationProviderClient.lastLocation
                 locationResult.addOnCompleteListener(requireActivity()) { task ->
                     if (task.isSuccessful) {
@@ -259,7 +259,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
 
     var checkIfLocationServiceIsEnabledActivityResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ){result ->
+    ){_ ->
         checkIfLocationEnabled(false)
     }
 
@@ -290,13 +290,15 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                     }
                     .setNegativeButton(R.string.cancel) { _, _ ->
                         _viewModel.showSnackBar.value = errorMessage
+                        map.isMyLocationEnabled = false
                     }
                     .show()
             } else {
                 _viewModel.showSnackBar.value = errorMessage
+                map.isMyLocationEnabled = false
             }
         } else {
-            checkFineLocationPermission()
+            if (permissionDenied.not()) getDeviceLocation()
         }
     }
 

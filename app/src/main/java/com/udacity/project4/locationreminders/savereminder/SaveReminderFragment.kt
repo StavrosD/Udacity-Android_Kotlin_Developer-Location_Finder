@@ -99,7 +99,7 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                _viewModel.showErrorMessage.postValue(getString(R.string.geofence_permission_denied))
+                _viewModel.showErrorMessage.postValue(getString(R.string.geofence_background_permission_denied))
                 // requireActivity().finish()
             }
         }
@@ -116,12 +116,16 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
         val longitude = _viewModel.longitude.value
         reminderDataItem = ReminderDataItem(title, description.value, location, latitude.value, longitude)
         if (_viewModel.validateAndSaveReminder(reminderDataItem)){
-           checkIfLocationEnabled()
+            _viewModel.permissionDenied = false
+           requestAccessFineLocationPermission()
         }
     }
 
     private fun createGeofence(){
+        if (_viewModel.permissionDenied) return
+
         if (_viewModel.saveClicked) {
+
             _viewModel.saveClicked = false
             val geofence = Geofence.Builder()
                 // Set the request ID of the geofence. This is a string to identify this
@@ -193,7 +197,7 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
 
     var checkIfLocationServiceIsEnabledActivityResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ){result ->
+    ){_ ->
         checkIfLocationEnabled(false)
     }
 
@@ -214,7 +218,7 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
         if(!gps_enabled && !network_enabled) {
             // notify user
             if (showLocationNeededDialog) {
-                val errorMessage = getString(R.string.location_enabled_required)
+                val errorMessage = getString(R.string.geofence_error_no_location)
                 android.app.AlertDialog.Builder(requireContext())
                     .setMessage(R.string.location_disabled)
                     .setPositiveButton(R.string.open_location_settings) { _, _ ->
@@ -229,8 +233,13 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
                 _viewModel.showSnackBarInt.postValue( R.string.geofence_error_no_location)
                 _viewModel.navigationCommand.postValue(NavigationCommand.Back)
             }
-        } else {
-            requestAccessFineLocationPermission()
+        } else { // Location service enabled
+            if (_viewModel.permissionDenied) {
+                _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+            }
+            else {
+                createGeofence()
+            }
         }
     }
 
@@ -243,7 +252,7 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
             if (isGranted) {
                 // Permission is granted. Continue the action or workflow in your
                 // app.
-                requestBackgroundPermission()
+
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
@@ -251,21 +260,24 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
                 // settings in an effort to convince the user to change their
                 // decision.
                 _viewModel.showErrorMessage.postValue(getString(R.string.permission_location_required_toast))
-                _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+                _viewModel.permissionDenied = true
                 // requireActivity().finish()
+            }
+
+            if (runningQOrLater) {
+                requestBackgroundPermission()
+            } else {
+                checkIfLocationEnabled()
             }
         }
 
     private fun requestAccessFineLocationPermission() {
         when {
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                REQUIRED_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED -> {
+            ContextCompat.checkSelfPermission(requireContext(), REQUIRED_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
                 if (runningQOrLater) {
                     requestBackgroundPermission()
                 } else {
-                    createGeofence()
+                    checkIfLocationEnabled()
                 }
             }
 
@@ -275,15 +287,19 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
                 // include a "cancel" or "no thanks" button that allows the user to
                 // continue using your app without granting the permission.
                 AlertDialog.Builder(requireContext())
-                    .setMessage(getString(R.string.permission_location_required_toast))
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        requestFineLocationPermissionLauncher.launch(
-                            REQUIRED_FINE_LOCATION
-                        )
+                    .setMessage(getString(R.string.geofence_request_access_fine_location))
+                    .setPositiveButton(android.R.string.ok ) { _, _ ->
+                        requestFineLocationPermissionLauncher.launch(REQUIRED_FINE_LOCATION                        )
                     }
                     .setNegativeButton(android.R.string.cancel) { _, _ ->
-                        _viewModel.showErrorMessage.postValue(requireContext().getString(R.string.geofence_permission_denied))
-                        _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+                        _viewModel.showErrorMessage.postValue(requireContext().getString(R.string.permission_location_required_toast))
+                        _viewModel.permissionDenied = true
+
+                        if (runningQOrLater) {
+                            requestBackgroundPermission()
+                        } else {
+                            checkIfLocationEnabled()
+                        }
                     }
                     .create().show()
             }
@@ -304,26 +320,23 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
             if (isGranted) {
                 // Permission is granted. Continue the action or workflow in your
                 // app.
-                createGeofence()
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                _viewModel.showErrorMessage.postValue(getString(R.string.geofence_permission_denied))
-                _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+                _viewModel.permissionDenied = true
+                _viewModel.showErrorMessage.postValue(getString(R.string.geofence_background_permission_denied))
             }
+            checkIfLocationEnabled()
         }
 
     private fun requestBackgroundPermission() {
 
         when {
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                REQUIRED_BACKGROUND_PERMISSION
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                createGeofence()
+            ContextCompat.checkSelfPermission(requireContext(), REQUIRED_BACKGROUND_PERMISSION) == PackageManager.PERMISSION_GRANTED -> {
+                checkIfLocationEnabled()
             }
 
             shouldShowRequestPermissionRationale(REQUIRED_BACKGROUND_PERMISSION) -> {
@@ -339,14 +352,14 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
                         )
                     }
                     .setNegativeButton(android.R.string.cancel) { _, _ ->
-                        _viewModel.showErrorMessage.postValue(requireContext().getString(R.string.geofence_permission_denied))
-                        _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+                        _viewModel.permissionDenied = true
+                        _viewModel.showErrorMessage.postValue(requireContext().getString(R.string.geofence_background_permission_denied))
+                        checkIfLocationEnabled()
                     }
                     .create().show()
             }
             else -> {
                 // You can directly ask for the permission.
-                // The registered ActivityResultCallback gets the result of this request.
                 requestBackgroundPermissionLauncher.launch(REQUIRED_BACKGROUND_PERMISSION)
             }
         }
@@ -358,13 +371,11 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
         _viewModel.onClear()
     }
 
-
     companion object {
         internal const val ACTION_GEOFENCE_EVENT =
             "SaveReminderFragment.savereminder.action.ACTION_GEOFENCE_EVENT"
         private const val REQUIRED_BACKGROUND_PERMISSION = Manifest.permission.ACCESS_BACKGROUND_LOCATION
         private const val REQUIRED_FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION
-        private const val REQUEST_TURN_DEVICE_LOCATION_ON = 29
         private const val TAG = "SaveReminderFragment"
 
     }
