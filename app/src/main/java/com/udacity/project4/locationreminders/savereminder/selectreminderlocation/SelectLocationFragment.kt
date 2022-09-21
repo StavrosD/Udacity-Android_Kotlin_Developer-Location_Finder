@@ -137,6 +137,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
         setMapStyle(map)
         setMapLongClick(map)
         setPOIClick(map)
+        setOnMyLocationButtonClick(map)   // if location service is disabled is disabled, ask the user if he wants to enable it.
 
         // if the user reopens the view, display the selected point
         _viewModel.selectedPOI.value?.let {
@@ -159,6 +160,8 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 // Permission is granted. Continue the action or workflow in your
                 // app.
                 permissionDenied = false
+                map.isMyLocationEnabled = true
+                getDeviceLocation()
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
@@ -167,8 +170,8 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 // decision.
                 _viewModel.showErrorMessage.postValue(getString(R.string.location_permission_denied))
                 permissionDenied = true
+                map.isMyLocationEnabled = false
             }
-            checkIfLocationEnabled()
         }
     @SuppressLint("MissingPermission")
     private fun checkFineLocationPermission() {
@@ -178,7 +181,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
             ContextCompat.checkSelfPermission(requireContext(), REQUIRED_PERMISSION) == PackageManager.PERMISSION_GRANTED -> {
                 // You can use the API that requires the permission.
                 permissionDenied = false
-                checkIfLocationEnabled()
+                map.isMyLocationEnabled = true
             }
 
             shouldShowRequestPermissionRationale(REQUIRED_PERMISSION) -> {
@@ -192,7 +195,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 .setNegativeButton(android.R.string.cancel) { _, _ ->
                     _viewModel.showErrorMessage.postValue(getString(R.string.permission_rationale_location))
                     permissionDenied = true
-                    checkIfLocationEnabled()
+                    map.isMyLocationEnabled = false
                 }
                 .create().show()
                 }
@@ -216,10 +219,9 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
          */
 
 
-        val locationEnabled = !permissionDenied && !locationDisabled
-        map.isMyLocationEnabled = locationEnabled
+        // val locationEnabled = !permissionDenied && !locationDisabled
         try {
-            if (locationEnabled) {
+            if (!permissionDenied) {
                 val locationResult = fusedLocationProviderClient.lastLocation
                 locationResult.addOnCompleteListener(requireActivity()) { task ->
                     if (task.isSuccessful) {
@@ -281,24 +283,21 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
         if(!gps_enabled && !network_enabled) {
             // notify user
             val errorMessage = getString(R.string.location_enabled_required)
+            locationDisabled = true
             if (showLocationNeededDialog) {
                 android.app.AlertDialog.Builder(requireContext())
-                    .setMessage(R.string.location_disabled)
+                    .setMessage(R.string.map_location_disabled)
                     .setPositiveButton(R.string.open_location_settings) { _, _ ->
-                        returnFromEnableLocationSetting = true
                         checkIfLocationServiceIsEnabledActivityResultLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                     }
                     .setNegativeButton(R.string.cancel) { _, _ ->
                         _viewModel.showSnackBar.value = errorMessage
-                        map.isMyLocationEnabled = false
                     }
                     .show()
-            } else {
-                _viewModel.showSnackBar.value = errorMessage
-                map.isMyLocationEnabled = false
             }
         } else {
             if (permissionDenied.not()) getDeviceLocation()
+            locationDisabled = false
         }
     }
 
@@ -367,6 +366,17 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
             )?.showInfoWindow()
 
             binding.saveLocation.isEnabled = true
+        }
+    }
+
+    private fun setOnMyLocationButtonClick(map:GoogleMap) {
+        map.setOnMyLocationButtonClickListener() {
+            checkIfLocationEnabled(false)
+            if (locationDisabled) {
+                checkIfLocationEnabled()
+                return@setOnMyLocationButtonClickListener true
+            }
+            return@setOnMyLocationButtonClickListener false
         }
     }
 

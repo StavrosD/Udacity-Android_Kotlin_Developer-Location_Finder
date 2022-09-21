@@ -57,6 +57,7 @@
     <string name="location_permission_denied">This app requires location permission to enable the \'my location\' layer. Please try again and grant access to use the location.\nIf the permission has been permanently denied, it can be enabled from the System Settings &gt; Apps &gt; \'Location Reminders\'.</string>
     <string name="permission_location_required_toast">Geofence permission is required. Cannot create a GeoFence while fine location permission is denied!</string>
     <string name="location_disabled">Location service is disabled. </string>
+    <string name="map_location_disabled">For better experience, turn on device location, which uses Google\'s location service.</string>
     <string name="location_enabled_required">The app cannot display your location on the map while the location service is disabled!</string>
     <string name="geofence_error_no_location">Geofence not saved because location services are disabled!</string>
     <string name="open_location_settings">Open location settings</string>

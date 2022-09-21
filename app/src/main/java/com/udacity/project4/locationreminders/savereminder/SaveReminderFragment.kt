@@ -65,7 +65,6 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
         return binding.root
     }
 
-
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -94,7 +93,7 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
                 // app.
                 createGeofence()
             } else {
-                // Explain to the user that the feature is unavailable because the
+                // Explain to the user that the featurxe is unavailable because the
                 // features requires a permission that the user has denied. At the
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
@@ -109,13 +108,14 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
     //             COMPLETED: use the user entered reminder details to:
     //             1) add a geofencing request
     //             2) save the reminder to the local db
+
         val title = _viewModel.reminderTitle.value
         val description = _viewModel.reminderDescription
         val location = _viewModel.reminderSelectedLocationStr.value
         val latitude = _viewModel.latitude
         val longitude = _viewModel.longitude.value
         reminderDataItem = ReminderDataItem(title, description.value, location, latitude.value, longitude)
-        if (_viewModel.validateAndSaveReminder(reminderDataItem)){
+        if (_viewModel.validateEnteredData(reminderDataItem)){
             _viewModel.permissionDenied = false
            requestAccessFineLocationPermission()
         }
@@ -123,9 +123,7 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
 
     private fun createGeofence(){
         if (_viewModel.permissionDenied) return
-
         if (_viewModel.saveClicked) {
-
             _viewModel.saveClicked = false
             val geofence = Geofence.Builder()
                 // Set the request ID of the geofence. This is a string to identify this
@@ -226,18 +224,16 @@ class SaveReminderFragment : BaseFragment(), ActivityCompat.OnRequestPermissions
                     }
                     .setNegativeButton(R.string.cancel) { _, _ ->
                         _viewModel.showSnackBar.value = errorMessage
-                        _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+                       // _viewModel.navigationCommand.postValue(NavigationCommand.Back)
                     }
                     .show();
             } else {
                 _viewModel.showSnackBarInt.postValue( R.string.geofence_error_no_location)
-                _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+               // _viewModel.navigationCommand.postValue(NavigationCommand.Back)
             }
         } else { // Location service enabled
-            if (_viewModel.permissionDenied) {
-                _viewModel.navigationCommand.postValue(NavigationCommand.Back)
-            }
-            else {
+            if (!_viewModel.permissionDenied) {
+                _viewModel.saveReminder(reminderDataItem)
                 createGeofence()
             }
         }
