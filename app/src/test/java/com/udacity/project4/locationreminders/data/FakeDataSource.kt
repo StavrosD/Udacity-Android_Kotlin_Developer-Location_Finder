@@ -14,7 +14,7 @@ import java.util.*
 //Use FakeDataSource that acts as a test double to the LocalDataSource
 class FakeDataSource : ReminderDataSource {
     private var shouldReturnError = false
-    val targetContext = ApplicationProvider.getApplicationContext<Context>()
+    val targetContext: Context = ApplicationProvider.getApplicationContext<Context>()
 
     fun setReturnError(value: Boolean) {
         shouldReturnError = value

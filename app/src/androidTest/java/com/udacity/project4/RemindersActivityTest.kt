@@ -2,25 +2,19 @@ package com.udacity.project4
 
 import android.Manifest
 import android.app.Application
-import android.content.Context
-import android.content.Context.INPUT_METHOD_SERVICE
 import android.os.Build
 import android.util.Log
-import android.view.inputmethod.InputMethodManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.IdlingRegistry
-import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions.actionOnItemAtPosition
 import androidx.test.espresso.matcher.RootMatchers.withDecorView
-import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -55,6 +49,7 @@ import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
+import kotlin.concurrent.thread
 
 
 @RunWith(AndroidJUnit4::class)
@@ -188,8 +183,8 @@ class RemindersActivityTest : AutoCloseKoinTest() {// Extended Koin Test - embed
         onView(withId(R.id.saveReminder)).perform(click())
 
         // check if the toast and the snackbar are displayed
-        onView(withText(R.string.reminder_saved)).inRoot(withDecorView(not(`is`(decorView)))).check(matches(isDisplayed()))
         onView(withId(com.google.android.material.R.id.snackbar_text)).check(matches(withText(R.string.geofence_added)))
+        onView(withText(R.string.reminder_saved)).inRoot(withDecorView(not(`is`(decorView)))).check(matches(isDisplayed()))
 
         // verify the displayed data and open the reminder description view`
         onView(withText(title)).check(matches(withId(R.id.title)))

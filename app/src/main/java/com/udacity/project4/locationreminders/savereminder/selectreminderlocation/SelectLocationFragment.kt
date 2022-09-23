@@ -3,22 +3,22 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.Intent
+import android.app.Activity
+import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.location.Geocoder
-import android.location.LocationManager
 import android.os.Bundle
-import android.provider.Settings
+import android.os.Looper
 import android.util.Log
 import android.view.*
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -31,17 +31,17 @@ import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
+import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 
 class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
     private val TAG = "SelectLocationFragment"
-
     private var permissionDenied = false
-    private var locationDisabled = false
 
     //Use Koin to get the view model of the SaveReminder
     override val _viewModel: SaveReminderViewModel by sharedViewModel()
@@ -49,15 +49,22 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
     private lateinit var map : GoogleMap
     private var poi : PointOfInterest? = null
     private lateinit var fusedLocationProviderClient : FusedLocationProviderClient
+
     private val defaultZoom = 15
-    private var returnFromEnableLocationSetting = false
+    private lateinit var locationCallback: LocationCallback
+    val locationRequest = LocationRequest.create().apply {
+        interval = TimeUnit.SECONDS.toMillis(60)
+        fastestInterval = TimeUnit.SECONDS.toMillis(30)
+        maxWaitTime = TimeUnit.MINUTES.toMillis(2)
+        priority = Priority.PRIORITY_HIGH_ACCURACY
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_select_location, container, false)
-
+        _viewModel.initialLoad = false
         binding.viewModel = _viewModel
         binding.lifecycleOwner = this
 
@@ -114,6 +121,17 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
        binding.saveLocation.setOnClickListener {
            onLocationSelected()
        }
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+               // super.onLocationResult(p0)
+                locationResult ?: return
+                _viewModel.requestingLocationUpdates = false
+                stopLocationUpdates()
+                getDeviceLocation()   // the current location is known now so we can update the users' location on the map
+            }
+        }
+
         return binding.root
     }
 
@@ -161,7 +179,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 // app.
                 permissionDenied = false
                 map.isMyLocationEnabled = true
-                getDeviceLocation()
+                checkDeviceLocationSettingsAndGetLocation(false, false)
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
@@ -182,6 +200,7 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                 // You can use the API that requires the permission.
                 permissionDenied = false
                 map.isMyLocationEnabled = true
+                checkDeviceLocationSettingsAndGetLocation(false,false)
             }
 
             shouldShowRequestPermissionRationale(REQUIRED_PERMISSION) -> {
@@ -218,8 +237,6 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
          * cases when a location is not available.
          */
 
-
-        // val locationEnabled = !permissionDenied && !locationDisabled
         try {
             if (!permissionDenied) {
                 val locationResult = fusedLocationProviderClient.lastLocation
@@ -233,6 +250,9 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
                                 CameraUpdateFactory.newLatLngZoom(
                                     LatLng(lastKnownLocation.latitude,
                                         lastKnownLocation.longitude), defaultZoom.toFloat()))
+                        } else { // the location is not available at the moment
+                            _viewModel.requestingLocationUpdates = true
+                            startLocationUpdates()
                         }
                     } else {
                         Log.d(TAG, "Current location is null. Using defaults.")
@@ -259,46 +279,50 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
         }
     }
 
-    var checkIfLocationServiceIsEnabledActivityResultLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ){_ ->
-        checkIfLocationEnabled(false)
+
+    val checkDeviceLocationSettingsAndGetLocationLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        checkDeviceLocationSettingsAndGetLocation(false)
     }
 
+    private fun checkDeviceLocationSettingsAndGetLocation(resolve:Boolean = true, showMessage:Boolean = true) { // showMessage is used to show a message only if the user clicks the mylocation button, not when the fragment is loaded.
+        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+        val settingsClient = LocationServices.getSettingsClient(requireActivity())
+        val locationSettingsResponseTask = settingsClient.checkLocationSettings(builder.build())
 
-    @SuppressLint("MissingPermission")
-    private fun checkIfLocationEnabled(showLocationNeededDialog:Boolean = true){
-        val lm = requireActivity().getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        var gps_enabled = false
-        var network_enabled = false
-
-        try {
-            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        } catch(ex : Exception) {}
-
-        try {
-            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        } catch(ex : Exception) {}
-
-        if(!gps_enabled && !network_enabled) {
-            // notify user
-            val errorMessage = getString(R.string.location_enabled_required)
-            locationDisabled = true
-            if (showLocationNeededDialog) {
-                android.app.AlertDialog.Builder(requireContext())
-                    .setMessage(R.string.map_location_disabled)
-                    .setPositiveButton(R.string.open_location_settings) { _, _ ->
-                        checkIfLocationServiceIsEnabledActivityResultLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                    }
-                    .setNegativeButton(R.string.cancel) { _, _ ->
-                        _viewModel.showSnackBar.value = errorMessage
-                    }
-                    .show()
+        locationSettingsResponseTask.addOnFailureListener { exception ->
+            if (exception is ResolvableApiException && resolve) {
+                try {
+                    checkDeviceLocationSettingsAndGetLocationLauncher.launch(IntentSenderRequest.Builder(exception.resolution).build())
+                } catch (sendEx: IntentSender.SendIntentException) {
+                    Log.d(SaveReminderFragment.TAG, "Error getting location settings resolution: " + sendEx.message)
+                }
+            } else {
+                if (showMessage) _viewModel.showSnackBarInt.postValue(R.string.map_location_disabled)
             }
-        } else {
-            if (permissionDenied.not()) getDeviceLocation()
-            locationDisabled = false
         }
+
+        locationSettingsResponseTask.addOnSuccessListener {
+                getDeviceLocation()
+        }
+
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (_viewModel.requestingLocationUpdates) startLocationUpdates()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopLocationUpdates()
+    }
+    @SuppressLint("MissingPermission")
+    private fun startLocationUpdates() {
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback,Looper.getMainLooper())
+    }
+
+    private fun stopLocationUpdates() {
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
     }
 
     private fun setMapStyle(map: GoogleMap) {
@@ -369,14 +393,12 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
         }
     }
 
+    // override the functionality of "MyLocation"
+    // Check if location setting is on before getting the location
     private fun setOnMyLocationButtonClick(map:GoogleMap) {
         map.setOnMyLocationButtonClickListener() {
-            checkIfLocationEnabled(false)
-            if (locationDisabled) {
-                checkIfLocationEnabled()
-                return@setOnMyLocationButtonClickListener true
-            }
-            return@setOnMyLocationButtonClickListener false
+            checkDeviceLocationSettingsAndGetLocation(true,true)
+            return@setOnMyLocationButtonClickListener true
         }
     }
 
@@ -387,5 +409,6 @@ class SelectLocationFragment : BaseFragment(),OnMapReadyCallback {
          * @see .onRequestPermissionsResult
          */
         private const val REQUIRED_PERMISSION = Manifest.permission.ACCESS_FINE_LOCATION
+        private const val TAG = "SelectLocationFragment"
     }
 }

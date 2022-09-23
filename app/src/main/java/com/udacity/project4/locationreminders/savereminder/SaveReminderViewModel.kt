@@ -9,6 +9,7 @@ import com.udacity.project4.base.BaseViewModel
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
+import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.launch
 
 class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSource) :
@@ -19,9 +20,10 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     val selectedPOI = MutableLiveData<PointOfInterest?>()
     val latitude = MutableLiveData<Double?>()
     val longitude = MutableLiveData<Double?>()
-    var saveClicked = false
-    var permissionDenied = false
-
+    var saveClicked = MutableLiveData<Boolean>().apply { postValue(false) }
+    var permissionDenied =  MutableLiveData<Boolean>().apply { postValue(false) }
+    var initialLoad = false
+    var requestingLocationUpdates = false
     /**
      * Clear the live data objects to start fresh next time the view model gets called
      */
@@ -55,6 +57,7 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
         reminderSelectedLocationStr.postValue(reminderData.location)
         latitude.postValue(reminderData.latitude)
         longitude.postValue(reminderData.longitude)
+        EspressoIdlingResource.increment()
         viewModelScope.launch {
             dataSource.saveReminder(
                 ReminderDTO(
@@ -66,8 +69,9 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
                     reminderData.id
                 )
             )
+            EspressoIdlingResource.decrement()
             showLoading.postValue( false)
-            showToast.postValue(app.getString(R.string.reminder_saved))
+            showToast.value = app.getString(R.string.reminder_saved)
         }
     }
 

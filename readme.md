@@ -29,17 +29,26 @@ In this project, I created a TODO list app with location reminders that remind t
 <li>Code refactored for extensive error handling.</li>
 
 <li> Added this readme file and some screenshots.</li>
+
+<li>Added flowcharts for SaveReminderFragment and SelectLocationFragment. The most important functionality of these classes is displayed in these flowcharts.</li>
 </ol>
 
 <h2>Notes</h2>
 
 <ol>
+<li> Before running the project you should enter your MAPS_API_KEY. <br/>
+The recommended way is to create a "local.properties" file in the projects' root folder and then add  MAPS_API_KEY=...<br/>
+You can also replace the "$MAPS_API_KEY" value inside AndroidManifest.xml.</li>
 <li> Long click on a reminder to delete it and remove the geofence.</li>
 <li> If the geofence is not activated using the emulator:
 <ul>
    <li> Go to the application settings and set "Battery optimization" to "Not optimized" </li>
    <li> Go to the save reminder screen and then on the map. While the map is open, the app receives location notifications. </li>
 </ul>
+<li>Before running the tests, run the app, enable the required permissions and turn the location service on.</li>
+<li>Even if the access fine location permission is granted and the location service is on, clicking the "My location" button may not center the map on the device location. <br/>
+In rare cases, such as right after enabling the location service or being located on a location without GPS or wifi coverage. <br/>
+If you have clicked the "My location" button and a location is not available, the map will be centered automatically when the device resolves its' location.</li>
 </ol>
 <h2> Demo </h2>
 
@@ -113,3 +122,14 @@ In this project, I created a TODO list app with location reminders that remind t
     <figcaption>All the unit tests (14 of 14) passed! </figcaption>
 </figure>
 <br/>
+
+<h2>Flowcharts</h2>
+<figure>
+    <img src="screenshots/SaveReminderFragment-flowchart.png" alt="SaveReminderFragment flowchart"/>
+    <figcaption>SaveReminderFragment flowchart. </figcaption>
+</figure>
+<br/><br/>
+ <figure>
+    <img src="screenshots/SelectLocationFragment-flowchart.png" alt="SelectLocationFragment flowchart"/>
+    <figcaption>SelectLocationFragment flowchart (access fine location permission,mylocation layer, location setting, get location ).</figcaption>
+</figure>

@@ -25,7 +25,9 @@ abstract class BaseFragment : Fragment() {
             Snackbar.make(requireActivity().findViewById(R.id.snackbar_placeholder), it, Snackbar.LENGTH_LONG).show()
         })
         _viewModel.showToast.observe(this, {
-            Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+            requireActivity().runOnUiThread {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+            }
         })
         _viewModel.showSnackBar.observe(this, {
             Snackbar.make(requireActivity().findViewById(R.id.snackbar_placeholder), it, Snackbar.LENGTH_LONG).show()
